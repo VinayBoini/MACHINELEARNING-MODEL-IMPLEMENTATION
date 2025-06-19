@@ -1,0 +1,174 @@
+# -*- coding: utf-8 -*-
+"""
+Spam Email Detection with Scikit-learn
+
+This Jupyter Notebook demonstrates how to build a predictive model for spam email detection
+using the scikit-learn library in Python. We will use a Naive Bayes classifier,
+which is well-suited for text classification tasks.
+
+Dataset Source: The dataset typically used for this is the "SMS Spam Collection Dataset".
+For simplicity, we'll simulate loading it or provide a small sample if direct download
+within the notebook isn't feasible in this environment. In a real Jupyter environment,
+you would download it (e.g., from Kaggle or UCI Machine Learning Repository).
+For this example, we'll create a synthetic, small dataset to demonstrate the process.
+"""
+
+# %% [markdown]
+# ### 1. Import Necessary Libraries
+# We start by importing all the required libraries from scikit-learn and pandas for data handling.
+
+# %% [python]
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+print("Libraries imported successfully!")
+
+# %% [markdown]
+# ### 2. Load the Dataset
+# For a real scenario, you would load a CSV file. Here, we'll create a small synthetic dataset
+# that mimics the structure of a spam/ham (non-spam) SMS collection.
+
+# %% [python]
+# Create a synthetic dataset
+data = {
+    'label': ['ham', 'ham', 'spam', 'ham', 'spam', 'ham', 'ham', 'spam', 'ham', 'spam', 'ham', 'spam', 'ham', 'ham', 'spam'],
+    'message': [
+        'Go until jurong point, crazy.. Available only in bugis n great world la e buffet...',
+        'Ok lar... Joking wif u oni...',
+        'Free entry in 2 a wkly comp to win FA Cup final tkts 21st May 2005. Text FA to 87121 to receive entry question(std txt rate)T&C\'s apply 08452810075over18s',
+        'U dun say so early hor... U c already then say...',
+        'Had your mobile 11 months or more? U R entitled to Update to the latest colour mobiles with camera for Free! Call The Mobile Update Co FREE on 08002986030',
+        'Nah I don\'t think he goes to usf, he lives around here though',
+        'Is that seriously how you spell his name?',
+        'WINNER!! As a valued network customer you have been selected to receivea £900 prize reward! To claim call 09061701461. Claim code KL341. Valid 12 hours only.',
+        'I\'m gonna be home soon and i don\'t want to talk about this stuff anymore tonight, k? I\'ve cried enough today.',
+        'SMS. ac Spt: Msg: surv to 80060 for a chance to win a PS4. 16+ only. Ts&Cs apply. STOP to 80060 to optout. Cust care 08701417012',
+        'I HAVE A DATE ON SUNDAY WITH WILL!!',
+        'Congratulations! You\'ve been selected for a FREE £500 Amazon Voucher! Text CLAIM to 88900 to claim your prize. T&Cs apply.',
+        'Haha, the joke is on you!',
+        'Can I call you back later?',
+        'URGENT! Your mobile number has been awarded a FREE URGENT prize! Call 09045678910 now to collect.'
+    ]
+}
+df = pd.DataFrame(data)
+
+# Convert 'label' to numerical representation (0 for ham, 1 for spam)
+df['label_encoded'] = df['label'].map({'ham': 0, 'spam': 1})
+
+print("Dataset loaded and first 5 rows:")
+print(df.head())
+print("\nDataset Info:")
+df.info()
+print("\nSpam/Ham distribution:")
+print(df['label'].value_counts())
+
+
+# %% [markdown]
+# ### 3. Preprocessing and Feature Extraction
+# Text data cannot be directly fed into machine learning models. We need to convert it into numerical features.
+# `TfidfVectorizer` transforms text into a matrix of TF-IDF features. TF-IDF (Term Frequency-Inverse Document Frequency)
+# reflects how important a word is to a document in a collection or corpus.
+
+# %% [python]
+X = df['message']  # Features (email messages)
+y = df['label_encoded'] # Target (spam or ham)
+
+# Split the dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print(f"Training samples: {len(X_train)}")
+print(f"Testing samples: {len(X_test)}")
+
+# Initialize TfidfVectorizer
+# min_df ignores terms that have a document frequency strictly lower than the given threshold.
+# stop_words='english' removes common English stop words (like 'the', 'is', 'a').
+tfidf_vectorizer = TfidfVectorizer(min_df=1, stop_words='english', lowercase=True)
+
+# Fit and transform the training data
+X_train_transformed = tfidf_vectorizer.fit_transform(X_train)
+
+# Transform the test data
+X_test_transformed = tfidf_vectorizer.transform(X_test)
+
+print(f"\nShape of X_train_transformed: {X_train_transformed.shape}")
+print(f"Shape of X_test_transformed: {X_test_transformed.shape}")
+
+
+# %% [markdown]
+# ### 4. Model Training
+# We will use the Multinomial Naive Bayes classifier, which is suitable for discrete features
+# (like word counts or TF-IDF values).
+
+# %% [python]
+# Initialize the Multinomial Naive Bayes classifier
+model = MultinomialNB()
+
+# Train the model using the transformed training data
+model.fit(X_train_transformed, y_train)
+
+print("Model trained successfully!")
+
+# %% [markdown]
+# ### 5. Model Evaluation
+# After training, we evaluate the model's performance on the unseen test data using various metrics
+# such as accuracy, precision, recall, and F1-score, and visualize the confusion matrix.
+
+# %% [python]
+# Make predictions on the transformed test data
+y_pred = model.predict(X_test_transformed)
+
+# Calculate evaluation metrics
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1-Score: {f1:.4f}")
+print("\nConfusion Matrix:")
+print(conf_matrix)
+
+# Visualize the Confusion Matrix
+plt.figure(figsize=(6, 5))
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['Predicted Ham', 'Predicted Spam'],
+            yticklabels=['Actual Ham', 'Actual Spam'])
+plt.xlabel('Predicted Label')
+plt.ylabel('True Label')
+plt.title('Confusion Matrix for Spam Detection')
+plt.show()
+
+# %% [markdown]
+# ### 6. Testing with New Messages
+# Let's see how our trained model classifies some new, unseen messages.
+
+# %% [python]
+# Define some new messages for testing
+new_messages = [
+    "Congratulations! You've won a free iPhone. Click here to claim.",
+    "Hey, how are you doing today? Let's catch up soon.",
+    "Your account has been compromised. Verify your details immediately.",
+    "Meeting reminder for tomorrow at 10 AM.",
+    "URGENT! Your Amazon parcel is pending delivery. Update shipping details to avoid delays."
+]
+
+# Transform the new messages using the same TF-IDF vectorizer
+new_messages_transformed = tfidf_vectorizer.transform(new_messages)
+
+# Predict the labels for the new messages
+predictions = model.predict(new_messages_transformed)
+
+# Map numerical predictions back to original labels
+predicted_labels = ["spam" if pred == 1 else "ham" for pred in predictions]
+
+print("\n--- Predictions for New Messages ---")
+for message, label in zip(new_messages, predicted_labels):
+    print(f"Message: '{message}'\nPredicted: {label}\n")
